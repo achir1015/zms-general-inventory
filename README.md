@@ -4,7 +4,7 @@
 
 - 介面用 Python＋Flet，資料庫用 MariaDB。
 - Windows 版內建資料庫，打開程式就自動啟動，關掉程式就自動停止。
-- 平台：Windows 11 版已完成；macOS、Android、iPhone、iPad 版規劃中。
+- 平台：Windows 11、macOS 版已完成；Android、iPhone、iPad 版規劃中。
 - 開發者：吳玉柱 先生 與 Claude AI Opus 5.5
 
 ## 功能
@@ -53,6 +53,16 @@
 - 資料存放在 `%LOCALAPPDATA%\ZMSGeneralInventory`，程式更新或解除安裝都不會刪除。
 - 程式開啟時會自動檢查新版本，按一下就能更新。
 
+## 安裝（macOS）
+
+1. 到 [Releases](https://github.com/achir1015/zms-general-inventory/releases) 下載 `ZMSGeneralInventory-<版本>-mac.dmg`。
+2. 開啟 DMG，把「資料助秘之一般公司進銷存」拖到「應用程式」資料夾。
+
+- App 已用 Apple Developer ID 簽章，並通過 Apple 公證，可以直接開啟。
+- 內附 MariaDB 10.11.18，開啟 App 時自動啟動，結束 App（含 ⌘Q）時自動停止。Apple 晶片的 Mac 會透過 Rosetta 2 執行。
+- 資料存在 `~/Library/Application Support/ZMSGeneralInventory`。
+- 程式內的「版本更新」會下載新版、自動取代舊的 App，再重新開啟。
+
 ## 開發
 
 ```bash
@@ -63,6 +73,7 @@ python -m venv .venv
 .venv\Scripts\python tools\demo_data.py      # 建立示範資料（祥和貿易；會清空開發資料庫）
 .venv\Scripts\python -m pytest -q tests      # 測試（含與會計系統的拋轉整合測試）
 .venv\Scripts\python tools\build_windows.py  # 建置安裝檔 → dist-installer\
+bash tools/mac_in_terminal.sh                # （在 Mac 上）建置簽章公證 DMG → dist-mac/，結果在 build-mac.log
 ```
 
 - 內建 MariaDB 預設連接埠：正式版 3358、測試 3368（被佔用時會自動往上找）。
