@@ -1,0 +1,18 @@
+[project]
+name = "zms-general-inventory"
+version = "1.0.0"
+description = "資料助秘之一般公司進銷存"
+authors = [{ name = "吳玉柱" }]
+requires-python = ">=3.10"
+dependencies = ["flet==1.1.2", "flet-audio==1.1.2", "pymysql>=1.1"]
+
+[tool.flet]
+org = "com.achir"
+product = "資料助秘之一般公司進銷存"
+company = "吳玉柱"
+copyright = "© 2026 吳玉柱"
+
+[tool.flet.app]
+path = "."
+exclude = ["tests", "tools", "packaging", "data", ".venv", "dist", "dist-installer", "build", "docs", "run_web.py",
+           "*.spec", "assets/icon.ico", "*.log"]
