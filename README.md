@@ -6,7 +6,7 @@
 
 - 介面用 Python＋Flet，資料庫用 MariaDB。
 - Windows 版內建資料庫，打開程式就自動啟動，關掉程式就自動停止。
-- 平台：Windows 11、macOS 版已完成；Android、iPhone、iPad 版規劃中。
+- 平台：Windows 11、macOS、Android 版已完成；iPhone、iPad 版規劃中。
 - 開發者：吳玉柱 先生 與 Claude AI Opus 5.5
 
 ## 功能
@@ -65,6 +65,18 @@
 - 資料存在 `~/Library/Application Support/ZMSGeneralInventory`。
 - 程式內的「版本更新」會下載新版、自動取代舊的 App，再重新開啟。
 
+## 手機版（Android）
+
+1. 在電腦版打開「系統管理 → 手機連線」，畫面會出現 QR Code 和連線網址。
+2. 在手機安裝 `ZMSGeneralInventory-<版本>-android.apk`（第一次需要允許「安裝未知應用程式」）。
+3. 用手機相機掃描電腦上的 QR Code，App 會自動開啟並連上那台電腦，再用自己的帳號登入。
+
+- 手機不會直接連資料庫。每次操作都在電腦端依該帳號的權限執行，權限和電腦版相同。
+- 手機版功能和電腦版相同：開單、查庫存、盤點、收付款、票據、報表都可以用。以下只能在電腦版做：會計拋轉、備份還原、版本更新、手機連線設定。
+- 那台電腦要保持開機，並開著進銷存系統。不想開視窗時，可以用伺服器模式：`ZMSGeneralInventory.exe --server`。
+- 外出時可以在同一頁打開「外出連線」（Cloudflare 加密通道）。手機會記住公司內和外出兩個網址，連不上時自動切換。
+- 進銷存的連接埠是 8775，會計系統是 8765，兩套可以同時在同一台電腦開著手機連線。
+
 ## 開發
 
 ```bash
@@ -76,6 +88,9 @@ python -m venv .venv
 .venv\Scripts\python -m pytest -q tests      # 測試（含與會計系統的拋轉整合測試）
 .venv\Scripts\python tools\build_windows.py  # 建置安裝檔 → dist-installer\
 bash tools/mac_in_terminal.sh                # （在 Mac 上）建置簽章公證 DMG → dist-mac/，結果在 build-mac.log
+bash tools/build_android.sh                  # （在 Mac 上）建置 APK → dist-android/（簽章金鑰 android/ 不進 git，請備份）
+.venv\Scripts\python main.py --server       # 伺服器模式（資料庫＋手機連線 API，埠 8775）
+.venv\Scripts\python run_web_mobile.py      # 手機版面網頁預覽 http://127.0.0.1:8571（需先開伺服器模式）
 ```
 
 - 內建 MariaDB 預設連接埠：正式版 3358、測試 3368（被佔用時會自動往上找）。
