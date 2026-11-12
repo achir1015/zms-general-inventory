@@ -32,12 +32,18 @@ class StockQuery(ft.Column):
         b = self.ctx.books
         rows, whs = b.stock_list(self.wh.value or "", self.cat.value or "", self.zero.value,
                                  (self.search.value or "").strip())
-        cols = [("code", "商品編號", "s", 120), ("name", "品名", "s", 220), ("spec", "規格", "s", 110),
-                ("unit", "單位", "s", 50)]
+        if T.MOBILE:          # 手機：庫存量緊接在品名後面，不必左右捲動就看得到
+            cols = [("code", "編號", "s", 70), ("name", "品名", "s", 130), ("qty", "庫存", "n", 60),
+                    ("unit", "單位", "s", 40)]
+        else:
+            cols = [("code", "商品編號", "s", 120), ("name", "品名", "s", 220), ("spec", "規格", "s", 110),
+                    ("unit", "單位", "s", 50)]
         if not self.wh.value and len(whs) > 1:
             names = dict(b.options("wh"))
             cols += [("wh_" + w, names.get(w, w).split(" ", 1)[-1], "n", 80) for w in whs]
-        cols += [("qty", "庫存量", "n", 90), ("safety_qty", "安全存量", "n", 80)]
+        if not T.MOBILE:
+            cols.append(("qty", "庫存量", "n", 90))
+        cols.append(("safety_qty", "安全存量", "n", 80))
         if b.see_cost:
             cols += [("avg_cost", "平均成本", "n", 90), ("value", "庫存金額", "n", 120)]
         grid = T.Grid(cols, on_pick=lambda r: self.ctx.app.go("stock_card", product=r["code"]),

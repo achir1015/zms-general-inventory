@@ -160,6 +160,8 @@ def date_field(label="日期", value=None, width=150, **kw):
     from . import textscale
     if width and textscale.FACTOR < 1:          # Windows 大字體：日期欄加寬，免得 115/11/13 被截
         width += 18
+    if width and MOBILE:                        # 手機字體通常較大
+        width += 50
     return field(label, rocdate.show(value or rocdate.today()), width=width, hint_text="115/11/12",
                  prefix_icon=ft.Icons.CALENDAR_MONTH, **kw)
 

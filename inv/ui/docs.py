@@ -196,7 +196,8 @@ class DocEntry(ft.Column):
                 self.wh2 = T.dropdown("撥入倉", whs, None, width=170, filterable=False)
         self.tax = None
         if t["tax"]:
-            self.tax = T.dropdown("稅別", list(TAX_TYPES.items()), comp.get("default_tax_type") or 1, width=140,
+            self.tax = T.dropdown("稅別", list(TAX_TYPES.items()), comp.get("default_tax_type") or 1,
+                                  width=180 if T.MOBILE else 140,
                                   filterable=False, on_select=lambda e: self.recalc())
         self.invoice = T.field("發票號碼", "", width=150) if code in ("SI", "SR", "PI", "PR") else None
         self.ref = T.field("客戶單號" if t["pk"] == "C" else "廠商單號", "", width=150) if t["pk"] and not t.get(
@@ -235,8 +236,8 @@ class DocEntry(ft.Column):
             if t["src"]:
                 tools.append(T.btn("帶單（%s）" % "、".join(DOC_TYPES[s]["short"] for s in t["src"]),
                                    ft.Icons.PLAYLIST_ADD, lambda e: self.pick_source(), kind="outline"))
-        self.line_box = T.card(ft.Column([ft.Row([ft.Text("明細", size=15, weight=ft.FontWeight.W_700),
-                                                  ft.Container(expand=True), *tools]),
+        from .finance import items_head
+        self.line_box = T.card(ft.Column([items_head(ft.Text("明細", size=15, weight=ft.FontWeight.W_700), tools),
                                           self.line_head, self.lines,
                                           ft.Divider(height=1), self.totals], spacing=8, expand=True),
                                padding=14, expand=True, visible=not t.get("header_only"))
