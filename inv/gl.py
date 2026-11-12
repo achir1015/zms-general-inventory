@@ -254,7 +254,11 @@ class GLMixin:
         s = "%s 庫存月結" % rocdate.ym_show(ym)
         if periodic:
             r = self.db.row("SELECT SUM(close_amt) c, SUM(open_amt) o FROM cost_months WHERE ym=%s", (ym,))
-            delta = (r["c"] or D0) - (r["o"] or D0)
+            # 期初庫存單（OPEN）是開帳資料，不算本月存貨增加
+            opening = self.db.value("SELECT SUM(l.amount) FROM doc_lines l JOIN docs d ON d.id=l.doc_id JOIN products p "
+                                    "ON p.code=l.product WHERE d.status=1 AND p.is_stock=1 AND d.doc_type='OPEN' AND "
+                                    "d.doc_date BETWEEN %s AND %s", (first, last)) or D0
+            delta = (r["c"] or D0) - (r["o"] or D0) - opening
             pur = self.db.row(
                 "SELECT SUM(CASE WHEN d.doc_type='PI' THEN l.net ELSE 0 END) p, SUM(CASE WHEN d.doc_type='PR' AND "
                 "d.discount_only=0 THEN l.net ELSE 0 END) r, SUM(CASE WHEN d.doc_type='PR' AND d.discount_only=1 THEN "
@@ -297,6 +301,12 @@ class GLMixin:
             ls += [L("INV", s + " 其他入庫", v, "D"), L(k, s + " 其他入庫", v, "C")]
         return ls
 
+    def _stock_month_empty(self, ym):
+        """該月月結沒有任何成本分錄（例如只有期初庫存）。"""
+        periodic = self.company().get("inventory_system") == "D"
+        amounts = self._stock_lines(ym, periodic, lambda k, s, amt, side, *a, **kw: money(amt))
+        return not any(amounts)
+
     # ================================================================ 批次
     def next_batch_no(self):
         prefix = "GL" + rocdate.compact(rocdate.today())
@@ -306,6 +316,12 @@ class GLMixin:
     def create_gl_batch(self, date_from, date_to, scopes=None, mode=None):
         self.need("GL")
         vouchers, sources = self.gl_preview(date_from, date_to, scopes, mode)
+        if "stock" in set(scopes or SCOPES):
+            # 沒有任何成本分錄的月份（例如只有期初庫存的月份）標記為「不需拋轉」（gl_batch_id=0）
+            refs = {v["ref"] for v in vouchers}
+            for ym in self._stock_months(date(date_from), date(date_to)):
+                if "COST" + ym not in refs:
+                    self.db.exec("UPDATE cost_closes SET gl_batch_id=0 WHERE ym=%s AND gl_batch_id IS NULL", (ym,))
         if not vouchers:
             raise BizError("這段期間沒有尚未拋轉的交易")
         comp = self.company()

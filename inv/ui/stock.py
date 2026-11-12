@@ -354,6 +354,8 @@ class CostClose(ft.Column):
         for r in st["history"]:
             r["ym_s"] = rocdate.ym_show(r["ym"])
             r["closed_at"] = T.show(r["closed_at"])
+            if r["gl_batch_id"] == 0:
+                r["batch_no"] = "（無成本分錄）"
         hist.set_rows(st["history"])
         can = b.can("CLS", 2)
         acts = []

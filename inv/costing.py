@@ -140,6 +140,8 @@ class CostMixin:
                               [(r[12], r[1]) for r in rows if r[12]])
             self.db.exec("INSERT INTO cost_closes (ym, closed_by) VALUES (%s, %s)", (ym, self.uid))
             self.db.exec("UPDATE company SET stock_closed_ym=%s WHERE id=1", (ym,))
+        if self._stock_month_empty(ym):           # 沒有成本分錄的月份標記為「不需拋轉」
+            self.db.exec("UPDATE cost_closes SET gl_batch_id=0 WHERE ym=%s", (ym,))
         self.log("cost_close", ym, "%d 項商品" % len(rows))
         return len(rows)
 

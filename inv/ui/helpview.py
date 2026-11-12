@@ -11,7 +11,14 @@ ICONS = {"intro": (I.WB_SUNNY, "amber"), "quickstart": (I.ROCKET_LAUNCH, "rose")
          "home": (I.DASHBOARD_ROUNDED, "blue"), "shortcut": (I.SHORTCUT, "green"),
          "adopt_overview": (I.MAP, "blue"), "adopt_prepare": (I.CHECKLIST, "amber"),
          "adopt_data": (I.TABLE_CHART, "orange"), "adopt_setup": (I.SETTINGS_SUGGEST, "violet"),
-         "adopt_opening": (I.FLAG, "rose"), "adopt_daily": (I.TODAY, "green"), "adopt_monthly": (I.CALENDAR_MONTH, "teal")}
+         "adopt_opening": (I.FLAG, "rose"), "adopt_monthly": (I.CALENDAR_MONTH, "teal"),
+         "adopt_company": (I.STOREFRONT, "teal"), "adopt_opening_data": (I.INVENTORY_2, "orange"),
+         "adopt_parallel": (I.COMPARE_ARROWS, "sky"), "adopt_daily_sales": (I.LOCAL_SHIPPING, "teal"),
+         "adopt_daily_purchase": (I.SHOPPING_CART, "amber"), "adopt_daily_stock": (I.WAREHOUSE, "violet"),
+         "adopt_daily_notes": (I.RECEIPT_LONG, "pink"), "adopt_gl_concept": (I.LIGHTBULB, "blue"),
+         "adopt_gl_rules": (I.ACCOUNT_TREE, "blue"), "adopt_gl_steps": (I.SYNC_ALT, "blue"),
+         "adopt_gl_example": (I.RECEIPT, "blue"), "adopt_gl_check": (I.FACT_CHECK, "blue"),
+         "adopt_tips": (I.TIPS_AND_UPDATES, "amber")}
 
 
 def _menu_icons():
@@ -29,10 +36,14 @@ FLOW = [(ft.Icons.SHOPPING_CART, "採購進貨", "amber"), (ft.Icons.WAREHOUSE, 
         (ft.Icons.SYNC_ALT, "拋轉會計", "blue")]
 ADOPT_FLOW = [(ft.Icons.CHECKLIST, "導入準備", "amber"), (ft.Icons.TABLE_CHART, "資料整理", "orange"),
               (ft.Icons.SETTINGS_SUGGEST, "系統建置", "violet"), (ft.Icons.FLAG, "期初開帳", "rose"),
-              (ft.Icons.COMPARE_ARROWS, "平行作業", "sky"), (ft.Icons.TODAY, "正式上線", "green")]
+              (ft.Icons.COMPARE_ARROWS, "平行作業", "sky"), (ft.Icons.TODAY, "日常作業", "green"),
+              (ft.Icons.SYNC_ALT, "月結拋轉會計", "blue")]
 
 # 目錄：(群組標題, [(代號, 標題)])
-TOC = [("前言：系統導入說明", [(s["key"], s["title"]) for s in adoption.SECTIONS]),
+TOC = [("前言：系統導入說明", [(s["key"], s["title"]) for s in adoption.SECTIONS
+                             if not s["key"].startswith("adopt_gl") and s["key"] != "adopt_tips"]),
+       ("前言：拋轉會計系統", [(s["key"], s["title"]) for s in adoption.SECTIONS
+                          if s["key"].startswith("adopt_gl") or s["key"] == "adopt_tips"]),
        ("功能操作說明", [(k, t) for k, t, _ in GUIDE])]
 ORDER = [k for _, items in TOC for k, _ in items]
 
@@ -89,7 +100,7 @@ class Help(ft.Row):
                     padding=ft.Padding.symmetric(horizontal=8, vertical=6), border_radius=10,
                     bgcolor="#E3EDFF" if sel else None, ink=True, on_click=lambda e, k=k: self.show(k)))
         self.toc.controls = toc
-        self.banner.content = (self.flow(ADOPT_FLOW, "系統導入六階段（以祥和貿易為例）",
+        self.banner.content = (self.flow(ADOPT_FLOW, "導入與作業流程（以祥和貿易為例）",
                                          [T.btn("列印導入手冊", ft.Icons.PRINT, lambda e: print_manual(self.ctx),
                                                 kind="outline")])
                                if adopt else self.flow(FLOW, "進銷存作業流程"))
@@ -141,13 +152,25 @@ def render(b, tone):
     if kind == "table":
         head, rows = b[1], b[2]
         nums = [all(_numeric(r[i]) for r in rows if r[i]) and any(r[i] for r in rows) for i in range(len(head))]
+        # 欄寬依內容長度分配，總寬約 760；長文字自動換行（不再被截掉）
+        need = [max([len(head[i])] + [len(r[i]) for r in rows]) * 13 + 6 for i in range(len(head))]
+        avail = 760 - 22 * (len(head) - 1)
+        widths = list(need)
+        while sum(widths) > avail:
+            j = widths.index(max(widths))
+            widths[j] = max(widths[j] - 10, 70)
+            if all(w <= 70 for w in widths):
+                break
+        lines = max(1, max(len(c) * 13 // max(widths[i], 1) + 1 for r in rows for i, c in enumerate(r)))
         return ft.Container(ft.Row([ft.DataTable(
-            columns=[ft.DataColumn(ft.Text(h, weight=ft.FontWeight.W_700, size=13), numeric=nums[i])
+            columns=[ft.DataColumn(ft.Text(h, weight=ft.FontWeight.W_700, size=13, width=widths[i]), numeric=nums[i])
                      for i, h in enumerate(head)],
-            rows=[ft.DataRow(cells=[ft.DataCell(ft.Text(c, size=13, selectable=True,
+            rows=[ft.DataRow(cells=[ft.DataCell(ft.Text(c, size=13, selectable=True, width=widths[i],
+                                                        text_align=ft.TextAlign.RIGHT if nums[i] else None,
                                                         weight=ft.FontWeight.W_700 if r[0].startswith("合") else None))
-                                    for c in r]) for r in rows],
-            heading_row_color="#EEF3FA", heading_row_height=38, data_row_min_height=34, data_row_max_height=60,
+                                    for i, c in enumerate(r)]) for r in rows],
+            heading_row_color="#EEF3FA", heading_row_height=38, data_row_min_height=34,
+            data_row_max_height=max(60, 22 * lines + 16),
             column_spacing=22, border=ft.Border.all(1, T.LINE), border_radius=10,
             horizontal_lines=ft.BorderSide(0.6, "#EDF1F6"))], scroll=ft.ScrollMode.AUTO))
     return ft.Text(str(b))

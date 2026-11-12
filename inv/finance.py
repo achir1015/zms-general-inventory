@@ -255,15 +255,22 @@ class FinanceMixin:
                            % (src, applied, h["to_advance"], h["fee"]))
         if not src:
             raise BizError("請輸入收付款金額或沖帳明細")
+        opening = bool(header.get("opening"))
+        if opening:
+            # 期初票據登錄：上線時手上已收（已開）未兌現的支票，會計系統已用開帳傳票記錄，所以不拋轉
+            if h["cash"] or h["bank"] or h["fee"] or h["discount"] or h["use_advance"] or h["to_advance"] or endorsed:
+                raise BizError("期初票據登錄只能用支票沖期初應收／應付")
+            if any(items[i]["doc_type"] not in ("ARO", "APO") for i, _ in clean_ap):
+                raise BizError("期初票據登錄只能沖「期初應收／期初應付」")
         with self.db.transaction():
             no = self.next_receipt_no(kind, d)
             rid = self.db.exec(
                 "INSERT INTO receipts (r_no, kind, r_date, partner, cash, bank, bank_account, notes_amt, endorsed_amt, "
-                "fee, discount, use_advance, to_advance, applied, memo, created_by) VALUES (%s, %s, %s, %s, %s, %s, "
-                "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                "fee, discount, use_advance, to_advance, applied, memo, created_by, gl_batch_id) VALUES (%s, %s, %s, "
+                "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                 (no, kind, d, partner, h["cash"], h["bank"], bank_account, notes_amt, endorsed_amt, h["fee"],
                  h["discount"], h["use_advance"], h["to_advance"], applied, (header.get("memo") or "").strip()[:200],
-                 self.uid))
+                 self.uid, 0 if opening else None))
             self.db.exec_many("INSERT INTO receipt_applies (receipt_id, doc_id, amount) VALUES (%s, %s, %s)",
                               [(rid, i, a) for i, a in clean_ap])
             for n in clean_notes:
@@ -290,6 +297,7 @@ class FinanceMixin:
         if r["gl_batch_id"]:
             raise BizError("此單已拋轉會計，請先取消拋轉")
         notes = self.db.rows("SELECT * FROM notes WHERE receipt_id=%s", (rid,))
+        _ = r["gl_batch_id"] == 0          # 期初票據登錄（不拋轉）也可以作廢
         for n in notes:
             if n["status"] not in (1, 11) or self.db.value("SELECT 1 FROM note_events WHERE note_id=%s LIMIT 1",
                                                             (n["id"],)):

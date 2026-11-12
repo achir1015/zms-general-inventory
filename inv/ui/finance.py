@@ -167,6 +167,7 @@ class ReceiptEntry(ft.Column):
         self.use_adv = T.money_field("使用預收" if kind == "R" else "使用預付", "", width=120, on_change=self.recalc)
         self.to_adv = T.money_field("轉為預收" if kind == "R" else "轉為預付", "", width=120, on_change=self.recalc)
         self.memo = T.field("備註", "", width=360)
+        self.opening = T.switch("期初票據登錄（上線前已%s未兌現的支票，不拋轉會計）" % ("收" if kind == "R" else "開"), False)
         self.adv_info = T.muted("", 12)
         self.items_box = ft.Column(spacing=2, scroll=ft.ScrollMode.AUTO, expand=True)
         self.item_inputs = []
@@ -201,7 +202,8 @@ class ReceiptEntry(ft.Column):
                                         "green" if kind == "R" else "orange",
                                         [T.btn("收付款查詢", ft.Icons.RECEIPT, lambda e: ctx.app.go("receipts"),
                                                kind="outline")]),
-                          T.card(ft.Row([self.partner, self.date, self.memo], wrap=True, spacing=10), padding=14),
+                          T.card(ft.Row([self.partner, self.date, self.memo, self.opening], wrap=True, spacing=10),
+                                 padding=14),
                           pay, items, ft.Row([self.balance, ft.Container(expand=True),
                                               T.btn("存檔", ft.Icons.SAVE, lambda e: self.save())])],
                          spacing=10, expand=True)
@@ -343,7 +345,8 @@ class ReceiptEntry(ft.Column):
     def save(self):
         h = dict(r_date=self.date.value, partner=self.partner.value, cash=self.cash.value, bank=self.bank.value,
                  bank_account=self.bank_acct.value or "", fee=self.fee.value, discount=self.discount.value,
-                 use_advance=self.use_adv.value, to_advance=self.to_adv.value, memo=self.memo.value)
+                 use_advance=self.use_adv.value, to_advance=self.to_adv.value, memo=self.memo.value,
+                 opening=bool(self.opening.value))
         for k in ("cash", "bank", "fee", "discount", "use_advance", "to_advance"):
             h[k] = (h[k] or "").replace(",", "")
         applies = [dict(doc_id=it["id"], amount=(f.value or "").replace(",", "")) for it, f in self.item_inputs
@@ -390,7 +393,8 @@ class ReceiptList(ft.Column):
         rows = self.ctx.guard(self.ctx.books.find_receipts, self.kind.value or "R", self.start.value, self.end.value,
                               "", None if self.void.value else 1) or []
         for r in rows if isinstance(rows, list) else []:
-            r["st"] = "作廢" if r["status"] == 9 else ("已拋轉" if r["gl_batch_id"] else "")
+            r["st"] = "作廢" if r["status"] == 9 else ("已拋轉" if r["gl_batch_id"] else
+                                                         "期初（不拋轉）" if r["gl_batch_id"] == 0 else "")
         self.grid.set_rows(rows if isinstance(rows, list) else [])
         if refresh:
             self.update()
