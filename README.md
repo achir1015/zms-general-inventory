@@ -6,7 +6,7 @@
 
 - 介面用 Python＋Flet，資料庫用 MariaDB。
 - Windows 版內建資料庫，打開程式就自動啟動，關掉程式就自動停止。
-- 平台：Windows 11、macOS、Android 版已完成；iPhone、iPad 版規劃中。
+- 平台：Windows 11、macOS、Android、iPhone、iPad 版都已完成。
 - 開發者：吳玉柱 先生 與 Claude AI Opus 5.5
 
 ## 功能
@@ -65,11 +65,13 @@
 - 資料存在 `~/Library/Application Support/ZMSGeneralInventory`。
 - 程式內的「版本更新」會下載新版、自動取代舊的 App，再重新開啟。
 
-## 手機版（Android）
+## 手機版（Android／iPhone／iPad）
 
 1. 在電腦版打開「系統管理 → 手機連線」，畫面會出現 QR Code 和連線網址。
 2. 在手機安裝 `ZMSGeneralInventory-<版本>-android.apk`（第一次需要允許「安裝未知應用程式」）。
 3. 用手機相機掃描電腦上的 QR Code，App 會自動開啟並連上那台電腦，再用自己的帳號登入。
+
+- iPhone／iPad 用 Safari 開啟 https://achir1015.github.io/zms-general-inventory/ios/ ，按「安裝」。目前是內部測試版（Ad Hoc），只有已登記的裝置能安裝。iPhone 直向使用；iPad 橫向使用，版面和電腦版相同。
 
 - 手機不會直接連資料庫。每次操作都在電腦端依該帳號的權限執行，權限和電腦版相同。
 - 手機版功能和電腦版相同：開單、查庫存、盤點、收付款、票據、報表都可以用。以下只能在電腦版做：會計拋轉、備份還原、版本更新、手機連線設定。
