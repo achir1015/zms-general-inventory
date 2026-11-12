@@ -80,6 +80,7 @@ def is_tablet(page) -> bool:
 def start(app):
     p = app.page
     T.MOBILE = not is_tablet(p)
+    T.TABLET = not T.MOBILE
     if T.MOBILE:
         T.install_mobile_hooks()
     install_audio(p)

@@ -25,6 +25,7 @@ WARN = "#D97706"
 SIDEBAR_TOP = "#0F2747"
 SIDEBAR_BOTTOM = "#1B3E6F"
 MOBILE = False          # 手機版（直向窄螢幕）時由 mobile.start() 設為 True
+TABLET = False          # iPad（電腦版版面、但寬度較窄）
 PHONE_W = 340           # 手機上單一控制項的最大寬度
 READY = "mobile-ready"  # 控制項 data 設為此值：已專為手機排版，mobilize 不再處理
 MZ_OFF = set()          # 開發除錯：暫時關閉某些手機版面規則
@@ -96,6 +97,12 @@ def muted(text, size=13, **kw):
 
 
 def page_header(icon, title, subtitle="", tone="blue", actions=None):
+    if TABLET and actions and len(actions) > 1:
+        # iPad：工具列放到標題下一行，標題才不會被擠成直的
+        head = ft.Row([icon_tile(icon, tone, 48, radius=14),
+                       ft.Column([title_text(title), muted(subtitle)] if subtitle else [title_text(title)],
+                                 spacing=0, expand=True)], spacing=14)
+        return ft.Column([head, ft.Row(list(actions), wrap=True, spacing=10, run_spacing=8)], spacing=10)
     if MOBILE:
         head = ft.Row([icon_tile(icon, tone, 40, radius=12),
                        ft.Column([title_text(title, 19), muted(subtitle, 12)] if subtitle else [title_text(title, 19)],
@@ -207,6 +214,11 @@ def kpis(items, spacing=16):
             k.expand = False
             k.col = 6
         return ft.ResponsiveRow(items, spacing=10, run_spacing=10)
+    if TABLET and len(items) > 4:
+        for k in items:
+            k.expand = False
+            k.col = 4
+        return ft.ResponsiveRow(items, spacing=12, run_spacing=12)
     return ft.Row(items, spacing=spacing)
 
 
