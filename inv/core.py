@@ -396,6 +396,16 @@ class Base:
             p = self.db.row("SELECT * FROM products WHERE barcode=%s AND barcode<>'' LIMIT 1", (code,))
         return p
 
+    def product_list(self, active_only=True, stock_only=False):
+        """商品清單（下拉選單用）。"""
+        where = []
+        if active_only:
+            where.append("active=1")
+        if stock_only:
+            where.append("is_stock=1")
+        return self.db.rows("SELECT code, name, spec, unit, barcode, is_stock FROM products%s ORDER BY code"
+                            % ((" WHERE " + " AND ".join(where)) if where else ""))
+
     def find_products(self, text, limit=30):
         s = "%" + (text or "") + "%"
         return self.db.rows("SELECT code, name, spec, unit, price, price2, barcode FROM products WHERE active=1 AND "

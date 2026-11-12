@@ -160,6 +160,9 @@ class CostMixin:
             self.db.exec("UPDATE company SET stock_closed_ym=%s WHERE id=1", (prev,))
         self.log("cost_reopen", ym)
 
+    def cost_close_months(self):
+        return [r["ym"] for r in self.db.rows("SELECT ym FROM cost_closes ORDER BY ym DESC")]
+
     def cost_month_rows(self, ym):
         self.need("RPT", 1)
         rows = self.db.rows("SELECT c.*, p.name, p.unit, p.category FROM cost_months c JOIN products p ON "

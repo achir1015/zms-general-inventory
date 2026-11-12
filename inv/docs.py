@@ -50,6 +50,13 @@ class DocsMixin:
                     ln["price"] = ln["amount"] = None
         return h
 
+    def doc_id_by_no(self, no):
+        return self.db.value("SELECT id FROM docs WHERE doc_no=%s", (no,))
+
+    def count_adjust_doc(self, cnt_id):
+        """盤點單轉出的調整單（id、單號）。"""
+        return self.db.row("SELECT id, doc_no FROM docs WHERE src_doc_id=%s AND doc_type='ADJ' AND status=1", (cnt_id,))
+
     def doc_by_no(self, no):
         r = self.db.row("SELECT id FROM docs WHERE doc_no=%s", (no,))
         return self.doc(r["id"]) if r else None

@@ -91,6 +91,7 @@ def menu():
         ("系統管理", I.ADMIN_PANEL_SETTINGS, "pink", [
             ("users", "使用者與權限", I.ADMIN_PANEL_SETTINGS, "SYS", 2),
             ("company", "公司設定", I.BUSINESS, "SYS", 2),
+            ("mobile_link", "手機連線", I.PHONE_ANDROID, "SYS", 2),
             ("backup", "備份與還原", I.BACKUP, "SYS", 2),
             ("update", "版本更新與捷徑", I.SYSTEM_UPDATE, "", 0),
             ("audit", "操作紀錄", I.HISTORY, "SYS", 1)]),
@@ -119,7 +120,7 @@ def build_screen(sid, ctx, **kw):
         "rpt_sales": lambda c, **k: reports.Detail(c, "S"), "rpt_purchase": lambda c, **k: reports.Detail(c, "P"),
         "rpt_rank": reports.Ranking, "rpt_monthly": reports.Monthly, "rpt_inout": reports.InOut,
         "rpt_cost": reports.CostMonth,
-        "users": admin.Users, "company": admin.Company, "backup": admin.Backup, "update": admin.Update,
+        "users": admin.Users, "company": admin.Company, "mobile_link": admin.MobileLink, "backup": admin.Backup, "update": admin.Update,
         "audit": admin.Audit, "help": helpview.Help,
     }
     if sid in table:
@@ -580,7 +581,7 @@ class App:
         from ..api import ApiServer
         if self.api and self.api.running:
             return
-        self.api = ApiServer(self.db, port=int(self.st.extra.get("api_port") or 8765))
+        self.api = ApiServer(self.db, port=int(self.st.extra.get("api_port") or 8775))
         self.api.start()
 
     def stop_api(self):

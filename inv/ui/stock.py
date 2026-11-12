@@ -60,7 +60,7 @@ class StockCard(ft.Column):
         b = ctx.books
         today = rocdate.today()
         opts = [(p["code"], "%s %s" % (p["code"], p["name"])) for p in
-                b.db.rows("SELECT code, name FROM products WHERE is_stock=1 ORDER BY code")]
+                b.product_list(active_only=False, stock_only=True)]
         self.product = T.dropdown("商品", opts, product, width=300, on_select=lambda e: self.load())
         self.wh = T.dropdown("倉庫", b.options("wh"), "", width=160, blank="全部倉庫", filterable=False,
                              on_select=lambda e: self.load())
@@ -158,23 +158,36 @@ class Counting(ft.Column):
         done = bool(d["closed"]) or d["status"] == 9
         editable = b.can("STK", 2) and not done
         self.inputs = {}
+        self.diffs = []
         rows = []
-        prods = {p["code"]: p for p in b.db.rows("SELECT code, unit, spec FROM products")}
+        prods = {p["code"]: p for p in b.product_list(active_only=False)}
         for ln in d["lines"]:
             f = T.field("", "" if ln["count_qty"] is None else qshow(ln["count_qty"]), width=110,
                         text_align=ft.TextAlign.RIGHT, hint_text="實盤", height=44, disabled=not editable,
                         on_change=lambda e: self.refresh_diff())
             self.inputs[ln["id"]] = (ln, f)
             diff = ft.Text("", width=90, size=13, text_align=ft.TextAlign.RIGHT)
-            rows.append(ft.Container(ft.Row([
-                ft.Text(ln["product"], width=120, size=13), ft.Text(ln["name"], width=240, size=13, max_lines=1),
-                ft.Text(prods.get(ln["product"], {}).get("unit", ""), width=50, size=13),
-                ft.Text(qshow(ln["book_qty"]), width=90, size=13, text_align=ft.TextAlign.RIGHT), f, diff],
-                spacing=10), padding=ft.Padding.symmetric(vertical=2, horizontal=8), data=diff))
+            self.diffs.append(diff)
+            unit = prods.get(ln["product"], {}).get("unit", "")
+            if T.MOBILE:
+                f.width, f.expand, f.label = None, True, "實盤量"
+                diff.width = 80
+                rows.append(ft.Container(ft.Column([
+                    ft.Row([ft.Text(ln["product"], size=13, weight=ft.FontWeight.W_600),
+                            ft.Text(ln["name"], size=13, expand=True, max_lines=2)], spacing=8),
+                    ft.Row([T.muted("帳面 %s %s" % (qshow(ln["book_qty"]), unit), 13), f, diff], spacing=8)],
+                    spacing=6), padding=10, border_radius=12, border=ft.Border.all(1, T.LINE), bgcolor=T.CARD,
+                    data=T.READY, margin=ft.Margin.only(bottom=6)))
+            else:
+                rows.append(ft.Container(ft.Row([
+                    ft.Text(ln["product"], width=120, size=13), ft.Text(ln["name"], width=240, size=13, max_lines=1),
+                    ft.Text(unit, width=50, size=13),
+                    ft.Text(qshow(ln["book_qty"]), width=90, size=13, text_align=ft.TextAlign.RIGHT), f, diff],
+                    spacing=10), padding=ft.Padding.symmetric(vertical=2, horizontal=8)))
         self.row_ctrls = rows
         head = ft.Row([ft.Text(x, width=w, size=12, color=T.MUTED, weight=ft.FontWeight.W_600) for x, w in
                        (("商品編號", 120), ("品名", 240), ("單位", 50), ("帳面量", 90), ("實盤量", 110),
-                        ("盤差", 90))], spacing=10)
+                        ("盤差", 90))], spacing=10, visible=not T.MOBILE)
         self.stat = ft.Row([], spacing=10)
         acts = [T.btn("列印盤點表", ft.Icons.PRINT, lambda e: self.print_sheet(), kind="outline")]
         if editable:
@@ -186,7 +199,7 @@ class Counting(ft.Column):
         info = [T.chip(d["doc_no"], "teal"), T.chip("盤點日 %s" % rocdate.show(d["doc_date"]), "slate"),
                 T.chip("倉庫 %s" % d["warehouse"], "violet")]
         if d["closed"]:
-            adj = b.db.row("SELECT id, doc_no FROM docs WHERE src_doc_id=%s AND doc_type='ADJ' AND status=1", (d["id"],))
+            adj = b.count_adjust_doc(d["id"])
             info.append(T.chip("已轉調整單 %s" % (adj["doc_no"] if adj else ""), "green", ft.Icons.DONE_ALL))
             if adj:
                 info.append(T.btn("開啟調整單", ft.Icons.OPEN_IN_NEW,
@@ -194,7 +207,8 @@ class Counting(ft.Column):
         if d["status"] == 9:
             info.append(T.chip("已作廢", "slate"))
         self.body.controls = [
-            ft.Row(info + [ft.Container(expand=True), self.stat], wrap=True),
+            (ft.Row(info + [self.stat], wrap=True, spacing=8, run_spacing=8) if T.MOBILE else
+             ft.Row(info + [ft.Container(expand=True), self.stat])),
             T.card(ft.Column([head, ft.Divider(height=1), ft.Column(rows, spacing=0, scroll=ft.ScrollMode.AUTO,
                                                                     expand=True)], spacing=6, expand=True),
                    padding=12, expand=True),
@@ -205,9 +219,8 @@ class Counting(ft.Column):
 
     def refresh_diff(self, update=True):
         n_done, n_diff = 0, 0
-        for rc, (ln, f) in zip(self.row_ctrls, self.inputs.values()):
+        for diff, (ln, f) in zip(self.diffs, self.inputs.values()):
             v = (f.value or "").replace(",", "").strip()
-            diff = rc.data
             if v:
                 try:
                     q = Decimal(v) - ln["book_qty"]
@@ -278,7 +291,7 @@ class Counting(ft.Column):
     def print_sheet(self):
         b = self.ctx.books
         d = self.doc
-        prods = {p["code"]: p for p in b.db.rows("SELECT code, unit, spec FROM products")}
+        prods = {p["code"]: p for p in b.product_list(active_only=False)}
         rows = [dict(no=i, product=ln["product"], name=ln["name"], spec=prods.get(ln["product"], {}).get("spec", ""),
                      unit=prods.get(ln["product"], {}).get("unit", ""), book=qshow(ln["book_qty"]),
                      count="" if ln["count_qty"] is None else qshow(ln["count_qty"]), memo="")
@@ -420,8 +433,7 @@ class DeadStock(ft.Column):
         bal = b.provision_balance() if b.see_cost else None
         super().__init__([T.page_header(ft.Icons.TRENDING_DOWN, "呆滯品與跌價",
                                         "超過指定天數沒有出貨的庫存；可提列跌價損失或轉報廢", "rose", acts),
-                          T.card(ft.Row([self.days, self.wh, T.btn("查詢", ft.Icons.SEARCH, lambda e: self.load()),
-                                         ft.Container(expand=True)] +
+                          T.card(ft.Row([self.days, self.wh, T.btn("查詢", ft.Icons.SEARCH, lambda e: self.load())] +
                                         ([T.chip("備抵跌價餘額 %s" % T.amt(bal), "pink")] if bal is not None else []),
                                         wrap=True, spacing=10), padding=14),
                           self.grid], spacing=12, expand=True)

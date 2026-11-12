@@ -35,7 +35,7 @@ class Detail(ft.Column):
         self.end = T.date_field("迄", today, width=150)
         self.partner = T.dropdown("客戶" if side == "S" else "廠商", b.options(pk), None, width=200, blank="全部")
         prods = [(p["code"], "%s %s" % (p["code"], p["name"])) for p in
-                 b.db.rows("SELECT code, name FROM products ORDER BY code")]
+                 b.product_list(active_only=False)]
         self.product = T.dropdown("商品", prods, None, width=220, blank="全部")
         self.cat = T.dropdown("類別", b.options("cat"), "", width=150, blank="全部", filterable=False)
         cols = [("doc_date", "日期", "d", 90), ("doc_no", "單號", "s", 130), ("type_name", "種類", "s", 70),
@@ -58,7 +58,7 @@ class Detail(ft.Column):
         self.load(refresh=False)
 
     def _doc_id(self, r):
-        return self.ctx.books.db.value("SELECT id FROM docs WHERE doc_no=%s", (r["doc_no"],))
+        return self.ctx.books.doc_id_by_no(r["doc_no"])
 
     def sub(self):
         return "%s～%s" % (self.start.value, self.end.value)
@@ -201,7 +201,7 @@ class CostMonth(ft.Column):
     def __init__(self, ctx):
         self.ctx = ctx
         b = ctx.books
-        months = [r["ym"] for r in b.db.rows("SELECT ym FROM cost_closes ORDER BY ym DESC")]
+        months = b.cost_close_months()
         self.ym = T.dropdown("月份", [(m, rocdate.ym_show(m)) for m in months], months[0] if months else None,
                              width=170, filterable=False, on_select=lambda e: self.load())
         cols = [("product", "商品編號", "s", 110), ("name", "品名", "s", 180), ("open_qty", "期初量", "n", 75),

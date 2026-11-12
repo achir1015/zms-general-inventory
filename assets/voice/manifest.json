@@ -67,7 +67,7 @@
  "backup": "0cb1966af7f398c00fb64e1eab0cd6df176b4ffb",
  "update": "f7b39f09cfb60b50947463073fee32fd787a8b73",
  "audit": "34c59813245aaf703de324e8aee388a75ceb7b23",
- "shortcut": "c3999e9b64181a3a375ad24ce2c1100628dc65f0",
+ "shortcut": "607c24690184b82152f69846b779bf1d3656aa36",
  "adopt_company": "0ea322ecd6e2868282e2cf9a1ed6ad8675881635",
  "adopt_opening_data": "9c0f6ea7868817b8727cbce7eb6ba588f53b2e49",
  "adopt_parallel": "008d092d10caf38bfc9941a623ac48e71f7f6ce1",
@@ -80,5 +80,7 @@
  "adopt_gl_steps": "c20b8b04731352771bd97bf289d322de00dd3e77",
  "adopt_gl_example": "c286e4b16c4bb3dd74b833a0bb09b04a191112fc",
  "adopt_gl_check": "17baac137e3c861e51655eee33554b5cddf679a3",
- "adopt_tips": "c11a3e4476dd57111548cab67a764d408426d6d3"
+ "adopt_tips": "c11a3e4476dd57111548cab67a764d408426d6d3",
+ "mobile_link": "51a6996218ed2f3021931a5f6ec23a3089917cb2",
+ "mobile_app": "bf75c03e5c3805ce3abc968c8bdefadade3bdd28"
 }

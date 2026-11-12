@@ -66,16 +66,33 @@ class LineRow(ft.Container):
                                     on_click=lambda e: entry.remove_line(self))
         self.src_chip = ft.Container(T.chip("帶單", "sky", size=10), visible=bool(self.src_line_id),
                                      tooltip="來源單據明細")
-        cells = [self.no, self.product]
-        if entry.amount_mode:
-            cells += [self.amount]
+        if T.MOBILE:
+            # 手機：每一行明細是一張小卡片（寬度按比例，字體放大也不會超出）
+            for c in (self.product, self.qty, self.price, self.amount, self.memo):
+                c.width = None
+                c.expand = True
+            self.qty.label, self.price.label = ("調整量（±）" if entry.code == "ADJ" else "數量"),                 t.get("price_label", "單價")
+            self.amount.label, self.memo.label = "金額", "備註"
+            self.hint.width = None
+            nums = [self.amount] if entry.amount_mode else [self.qty] + ([self.price] if t["price"] else [])
+            layout = ft.Column([
+                ft.Row([self.no, self.product], spacing=6),
+                ft.Row(nums, spacing=8),
+                ft.Row([self.hint, ft.Container(expand=True), self.src_chip, self.amount_text], spacing=6),
+                ft.Row([self.memo, self.remove], spacing=4)], spacing=8)
+            super().__init__(layout, padding=12, border_radius=14, border=ft.Border.all(1, T.LINE),
+                             bgcolor=T.CARD, data=T.READY, margin=ft.Margin.only(bottom=8))
         else:
-            cells += [self.qty]
-            if t["price"]:
-                cells += [self.price, self.amount_text]
-        cells += [self.memo, self.src_chip, self.hint, self.remove]
-        super().__init__(ft.Row(cells, spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER),
-                         padding=ft.Padding.symmetric(vertical=3, horizontal=6), border_radius=10)
+            cells = [self.no, self.product]
+            if entry.amount_mode:
+                cells += [self.amount]
+            else:
+                cells += [self.qty]
+                if t["price"]:
+                    cells += [self.price, self.amount_text]
+            cells += [self.memo, self.src_chip, self.hint, self.remove]
+            super().__init__(ft.Row(cells, spacing=8, vertical_alignment=ft.CrossAxisAlignment.CENTER),
+                             padding=ft.Padding.symmetric(vertical=3, horizontal=6), border_radius=10)
         if data.get("product"):
             self.show_hint()
         self.calc()
@@ -156,7 +173,7 @@ class DocEntry(ft.Column):
         self.rows = []
         comp = b.company()
         self.comp = comp
-        prods = b.db.rows("SELECT code, name, spec, unit, barcode, is_stock FROM products WHERE active=1 ORDER BY code")
+        prods = b.product_list()
         if t["stock"] not in (0,) and code not in ("SI", "SR", "PI", "PR"):
             prods = [p for p in prods if p["is_stock"]]
         self.prod_opts = [(p["code"], "%s %s%s" % (p["code"], p["name"], " " + p["spec"] if p["spec"] else ""))
@@ -261,6 +278,7 @@ class DocEntry(ft.Column):
         cols += [("備註", 150)]
         self.line_head.content = ft.Row([ft.Text(n, width=w, size=12, color=T.MUTED, weight=ft.FontWeight.W_600)
                                          for n, w in cols], spacing=8)
+        self.line_head.visible = not T.MOBILE
         self.line_head.padding = ft.Padding.only(left=6)
 
     def set_memo(self, p):

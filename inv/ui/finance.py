@@ -69,7 +69,7 @@ class Balances(ft.Column):
                 self.update()
         go()
         self.body.controls = [T.card(ft.Row([self.as_of, self.by_due, T.btn("計算", ft.Icons.CALCULATE, go),
-                                             ft.Container(expand=True), self.ctx.export_button(self.ag_grid, "帳齡分析")],
+                                             self.ctx.export_button(self.ag_grid, "帳齡分析")],
                                             wrap=True, spacing=10), padding=14), self.ag_grid]
 
     def r_items(self):
@@ -151,6 +151,13 @@ class Balances(ft.Column):
 
 
 # ====================================================================== 收款／付款沖帳
+def items_head(title, buttons):
+    """標題＋按鈕：電腦版同一列，手機版按鈕換到下一列並自動換行。"""
+    if T.MOBILE:
+        return ft.Column([title, ft.Row(buttons, wrap=True, spacing=8, run_spacing=8)], spacing=8, data=T.READY)
+    return ft.Row([title, ft.Container(expand=True), *buttons])
+
+
 class ReceiptEntry(ft.Column):
     def __init__(self, ctx, kind, partner=None):
         self.ctx, self.kind = ctx, kind
@@ -167,7 +174,8 @@ class ReceiptEntry(ft.Column):
         self.use_adv = T.money_field("使用預收" if kind == "R" else "使用預付", "", width=120, on_change=self.recalc)
         self.to_adv = T.money_field("轉為預收" if kind == "R" else "轉為預付", "", width=120, on_change=self.recalc)
         self.memo = T.field("備註", "", width=360)
-        self.opening = T.switch("期初票據登錄（上線前已%s未兌現的支票，不拋轉會計）" % ("收" if kind == "R" else "開"), False)
+        self.opening = T.switch(("期初票據登錄（不拋轉）" if T.MOBILE else
+                                 "期初票據登錄（上線前已%s未兌現的支票，不拋轉會計）" % ("收" if kind == "R" else "開")), False)
         self.adv_info = T.muted("", 12)
         self.items_box = ft.Column(spacing=2, scroll=ft.ScrollMode.AUTO, expand=True)
         self.item_inputs = []
@@ -189,13 +197,13 @@ class ReceiptEntry(ft.Column):
             ft.Row([ft.Text(note_title, size=14, weight=ft.FontWeight.W_600), ft.Container(expand=True), *pay_tools]),
             self.notes_box, self.endorse_box], spacing=10), padding=14)
         items = T.card(ft.Column([
-            ft.Row([ft.Text("沖帳明細（未沖帳款）", size=15, weight=ft.FontWeight.W_700), ft.Container(expand=True),
-                    T.btn("依金額自動沖帳", ft.Icons.AUTO_FIX_HIGH, lambda e: self.auto(), kind="outline"),
-                    T.btn("全部沖清", ft.Icons.DONE_ALL, lambda e: self.all_items(), kind="outline"),
-                    T.btn("清除", ft.Icons.CLEAR, lambda e: self.clear_items(), kind="ghost")]),
+            items_head(ft.Text("沖帳明細（未沖帳款）", size=15, weight=ft.FontWeight.W_700), [
+                T.btn("依金額自動沖帳", ft.Icons.AUTO_FIX_HIGH, lambda e: self.auto(), kind="outline"),
+                T.btn("全部沖清", ft.Icons.DONE_ALL, lambda e: self.all_items(), kind="outline"),
+                T.btn("清除", ft.Icons.CLEAR, lambda e: self.clear_items(), kind="ghost")]),
             ft.Row([ft.Text(x, width=w, size=12, color=T.MUTED, weight=ft.FontWeight.W_600) for x, w in
                     (("日期", 90), ("單號", 130), ("種類", 70), ("發票", 100), ("預計收付", 90), ("未沖金額", 110),
-                     ("本次沖帳", 130))], spacing=10),
+                     ("本次沖帳", 130))], spacing=10, visible=not T.MOBILE),
             self.items_box], spacing=8, expand=True), padding=14, expand=True)
         super().__init__([T.page_header(ft.Icons.ADD_CARD if kind == "R" else ft.Icons.CREDIT_CARD, title,
                                         "選擇對象 → 輸入收付金額與票據 → 勾沖帳款；左右金額相等才能存檔",
@@ -230,7 +238,22 @@ class ReceiptEntry(ft.Column):
                                   color=T.DANGER if it["remain"] < 0 else T.TEXT),
                           f, ft.IconButton(ft.Icons.DONE, icon_size=16, tooltip="沖清這筆",
                                            on_click=lambda e, f=f, it=it: self.fill(f, it["remain"]))], spacing=10)
-            self.items_box.controls.append(ft.Container(row, padding=ft.Padding.symmetric(horizontal=4)))
+            if T.MOBILE:
+                f.width, f.expand, f.label = None, True, "本次沖帳"
+                row = ft.Container(ft.Column([
+                    ft.Row([ft.Text(it["doc_no"], size=13, weight=ft.FontWeight.W_600),
+                            T.chip(DOC_TYPES[it["doc_type"]]["short"], "sky", size=11),
+                            T.muted(rocdate.show(it["doc_date"]), 12)], spacing=8, wrap=True),
+                    ft.Row([T.muted("未沖", 12), ft.Text(T.amt(it["remain"]), size=14, weight=ft.FontWeight.W_700,
+                                                        color=T.DANGER if it["remain"] < 0 else T.TEXT),
+                            ft.Container(expand=True),
+                            ft.IconButton(ft.Icons.DONE, icon_size=16, tooltip="沖清這筆",
+                                          on_click=lambda e, f=f, it=it: self.fill(f, it["remain"]))], spacing=6),
+                    f], spacing=6), padding=10, border_radius=12, border=ft.Border.all(1, T.LINE), bgcolor=T.CARD,
+                    data=T.READY, margin=ft.Margin.only(bottom=6))
+                self.items_box.controls.append(row)
+            else:
+                self.items_box.controls.append(ft.Container(row, padding=ft.Padding.symmetric(horizontal=4)))
             self.item_inputs.append((it, f))
         if not items:
             self.items_box.controls = [T.empty_state(ft.Icons.TASK_ALT, "這個%s目前沒有未沖帳款" % PKN[self.pk],
