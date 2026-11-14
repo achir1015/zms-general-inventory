@@ -1,5 +1,9 @@
 # 資料助秘之一般公司進銷存
 <img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/42359c96-1489-42fb-b283-674b193cdcb5" />
+示範
+
+https://github.com/user-attachments/assets/8549489a-8a86-456c-85c4-98b9077637ff
+
 
 
 這是單一公司用的進貨、銷貨、庫存、帳款與票據管理系統。它可以和[資料助秘之一般公司會計](https://github.com/achir1015/zms-accounting)搭配：進銷存的交易會轉成會計傳票，直接送到會計系統。
